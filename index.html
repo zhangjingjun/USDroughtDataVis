@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>US Drought DataVis with Multiple Views</title>
+	<link href="https://fonts.googleapis.com/css?family=Exo+2|Aldrich|Bungee+Hairline|Comfortaa|Lato|Open+Sans|Orbitron|Ruda" rel="stylesheet">
+	<script src="https://d3js.org/d3.v4.min.js"></script>
+	<script src="http://d3js.org/topojson.v1.min.js"></script>
+	<style type="text/css">
+		body {
+			background-color: #ffffff;
+      		color: #000000;
+      		font-size: large;
+      		font-family: 'Lato', sans-serif;
+      		margin-left: auto;
+      		margin-right: auto;
+		}
+		div {
+			background-color: #ffffff;
+      		color: #000000;
+      		font-size: large;
+      		font-family: 'Lato', sans-serif;
+      		width: auto;
+      		height: auto;
+      		text-align: center;
+      		margin-left: auto;
+      		margin-right: auto;
+		}
+		header {
+			background-color: #ffffff;
+      		color: #000000;
+      		font-size: 24pt;
+      		font-family: 'Lato', sans-serif;
+      		width: auto;
+      		text-align: center;
+      		margin-left: auto;
+      		margin-right: auto;
+      		margin-top: 10px;
+      		margin-bottom: 10px;
+		}
+		#frametable {
+			background-color: #ffffff;
+      		color: #000000;
+      		font-size: large;
+      		font-family: 'Lato', sans-serif;
+      		text-align: center;
+      		margin-left: auto;
+      		margin-right: auto;
+		}
+
+		.counties {
+		  	fill: none;
+		}
+
+		.states {
+			  fill: none;
+			  stroke: #fff;
+			  stroke-linejoin: round;
+		}
+		div.tooltip {	
+		    position: absolute;			
+		    text-align: center;			
+		    width: 140px;					
+		    height: 30px;					
+		    padding: 2px;				
+		    font: 12px sans-serif;		
+		    border: 0px;		
+		    border-radius: 8px;			
+		    pointer-events: none;			
+		}
+
+	</style>
+</head>
+<body>
+<header>US Drought DataVis with Multiple Views</header>
+<table id="frametable">
+	<tr>
+		<div class="textdiv" id="textdiv">
+		
+		</div>
+	</tr>
+	<tr>
+		<div class="svgdiv" id="svgdiv">
+		</div>
+	</tr>	
+</table>
+<script>
+console.log(d3);
+var margin = {top:50,right:50,bottom:50,left:50};
+width = 1000;
+height = 600;
+extraheight = height / 2;
+lcwidth = 800;
+
+weekNum = 7;
+var svg = d3.select("#svgdiv").append("svg").attr("width", width).attr("height", height + extraheight).attr("background-color", "#f8f8f8");
+var div = d3.select("body").append("div").attr("class", "tooltip").style("opacity", 0);
+
+var nothingById = d3.map();
+var D0ById = d3.map();
+var D1ById = d3.map();
+var D2ById = d3.map();
+var D3ById = d3.map();
+var D4ById = d3.map();
+var StateName = d3.map();
+var StateId = d3.map();
+var CountyName = d3.map();
+
+var CountiesInState = [];
+for (i = 0; i < 80; i++) {
+	CountiesInState.push([]);
+}
+
+var projection = d3.geoAlbersUsa().scale(1280).translate([width / 2, height / 2]);
+
+var path = d3.geoPath().projection(projection);
+
+var dispatch = d3.dispatch("load", "statechange");
+
+var gstate = {county: 25027, week: 0, level: 0};
+
+var levelList = [nothingById, D0ById, D1ById, D2ById, D3ById, D4ById];
+
+var cscale = d3.scaleLinear().domain([0, 100]).range(["green", "red"]);
+
+d3.queue()
+    .defer(d3.json, "us.json")
+    .defer(d3.csv, "fips.csv", function(d) {
+    	StateId.set(d.State, +d.StateFIPSCode);
+    })
+    .defer(d3.csv, "drought.csv", function(d){
+    	if (StateName.has(+d.FIPS)) {
+
+		   	nothingById.get(+d.FIPS)[+d.Week] = +d.Nothing;
+		    D0ById.get(+d.FIPS)[+d.Week] = +d.D0;
+		    D1ById.get(+d.FIPS)[+d.Week] = +d.D1;
+		    D2ById.get(+d.FIPS)[+d.Week] = +d.D2;
+		    D3ById.get(+d.FIPS)[+d.Week] = +d.D3;
+		    D4ById.get(+d.FIPS)[+d.Week] = +d.D4;
+    	} else {
+    		StateName.set(+d.FIPS, d.State); 
+    		CountyName.set(+d.FIPS, d.County);
+			CountiesInState[StateId.get(d.State)].push(+d.FIPS)
+	    	//console.log(+d.FIPS);
+		   	nothingById.set(+d.FIPS, [weekNum]);
+		   	nothingById.get(+d.FIPS)[+d.Week] = +d.Nothing;
+		    D0ById.set(+d.FIPS, [weekNum]);
+		    D0ById.get(+d.FIPS)[+d.Week] = +d.D0;
+		    D1ById.set(+d.FIPS, [weekNum]);
+		    D1ById.get(+d.FIPS)[+d.Week] = +d.D1;
+		    D2ById.set(+d.FIPS, [weekNum]);
+		    D2ById.get(+d.FIPS)[+d.Week] = +d.D2;
+		    D3ById.set(+d.FIPS, [weekNum]);
+		    D3ById.get(+d.FIPS)[+d.Week] = +d.D3;
+		    D4ById.set(+d.FIPS, [weekNum]);
+		    D4ById.get(+d.FIPS)[+d.Week] = +d.D4;
+    	}
+    })
+    .await(ready);
+
+function ready(error, us) {
+  	if (error) throw error;
+  	dispatch.call("load", this, us);
+  	dispatch.call("statechange", this, gstate);
+}
+
+dispatch.on("load.map", function(us) {
+  	svg.append("g").attr("class", "counties").selectAll("path").data(topojson.feature(us, us.objects.counties).features).enter().append("path").attr("id", function(d){ return d.id}).attr("class","county").attr("d", path).attr("fill", function(d) { if (StateName.has(d.id)) {return cscale(levelList[gstate.level].get(d.id)[gstate.week]);} else { return "none"} }).attr("opacity", 0.5).on("click", function(d) { gstate.county = d.id; dispatch.call("statechange", this, gstate);}).on("mouseover", function(d) { div.transition().style("opacity", 0.9).style("left", (d3.event.pageX) + "px").style("top", (d3.event.pageY - 42) + "px").text(CountyName.get(d.id) + ", " + StateName.get(d.id) +  ", Week" + gstate.week + ", D" + gstate.level + ", " + levelList[gstate.level].get(d.id)[gstate.week] + "%"); }).on("mouseout", function(d) {div.transition().style("opacity", 0); });
+
+  	svg.append("path").datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; })).attr("class", "states").attr("d", path).style("stroke-dasharray", ("10, 10"));
+
+  	dispatch.on("statechange.map", function(state) {
+  		d3.selectAll("path").transition().attr("fill", function(d) { if (StateName.has(d.id)) { return cscale(levelList[gstate.level].get(d.id)[gstate.week]);} else { return "none"} }).attr("opacity", function(d) { if (d.id == gstate.county) {return 1; } else {return 0.5; } }).duration(1000);
+  	});
+});
+
+dispatch.on("load.line", function(us) {
+
+	xscale = d3.scaleLinear().domain([0, weekNum + 1]).range([margin.left, margin.left + lcwidth]);
+	yscale = d3.scaleLinear().domain([0, 100]).range([height+ extraheight -margin.bottom, height + margin.top]);
+	g = svg.append("g").attr("class", "axis");
+	g.append("line").attr("x1", xscale(0)).attr("x2", xscale(0)).attr("y1", yscale(0)).attr("y2", yscale(100) - 10).attr("stroke", "gray");
+	g.append("line").attr("x1", xscale(0)).attr("x2", xscale(weekNum + 1)).attr("y1", yscale(0)).attr("y2", yscale(0)).attr("stroke", "gray");
+	for (i = 1; i <= 5; i ++) {
+		g.append("line").attr("x1", xscale(0)).attr("x2", xscale(weekNum + 1)).attr("y1", yscale(20 * i)).attr("y2", yscale(20 * i)).attr("stroke", "gray").style("stroke-dasharray", ("10, 10"));
+		g.append("text").attr("transform", "translate("+ (xscale(0) - 35) +", "+ (yscale(20 * i)) +")").attr("fill", "black").text(20 * i).attr("font-size", "12pt");
+	}
+	for (i = 1; i <= weekNum; i++){
+		g.append("text").attr("transform", "translate("+ (xscale(i)) +", "+ (yscale(0) + 15) +")rotate(45)").attr("fill", "black").text("Week" + (i - 1)).attr("font-size", "12pt");
+	}
+	l = svg.append("g").attr("class", "linechart");
+	for (i = 0; i < weekNum -1; i++){
+		l.append("line").attr("class", "chartline").attr("id", i).attr("x1", xscale(i + 1)).attr("x2", xscale(i + 2)).attr("y1", yscale(levelList[gstate.level].get(gstate.county)[i])).attr("y2", yscale(levelList[gstate.level].get(gstate.county)[i + 1])).attr("stroke", "black").attr("stroke-width", 4).on("click", function() { gstate.week = +this.id; dispatch.call("statechange", this, gstate);}).on("mouseover", function(d) { div.transition().style("opacity", 0.9).style("left", (d3.event.pageX) + "px").style("top", (d3.event.pageY - 42) + "px").text(CountyName.get(gstate.county) + ", " + StateName.get(gstate.county) +  ", Week" + this.id + ", D" + gstate.level + ", " + levelList[gstate.level].get(gstate.county)[this.id] + "%"); }).on("mouseout", function(d) {div.transition().style("opacity", 0); });
+
+	}
+  	dispatch.on("statechange.line", function(state) {
+
+  		d3.selectAll(".chartline").transition().attr("x1", function(d, i ){ return xscale(i + 1);}).attr("x2", function(d, i ){ return xscale(i + 2);} ).attr("y1", function(d, i ){ return yscale(levelList[gstate.level].get(gstate.county)[i]);}).attr("y2", function(d, i ){ return yscale(levelList[gstate.level].get(gstate.county)[i + 1]); }).duration(1000);
+  	});
+});
+
+dispatch.on("load.bar", function(us) {
+
+	var percentlist = [100, 0, 0, 0, 0, 0, 0]; 
+	//all, more than nothing, more than d0, more than d1 ...
+	for (i = levelList.length - 1; i >= 0; i --){
+		percentlist[i] = levelList[i].get(gstate.county)[gstate.week] + percentlist[ i + 1];
+	}
+
+	//console.log(percentlist);
+	for (i = 0; i < percentlist.length - 1; i ++){
+		svg.append("rect").attr("id", i).attr("x", width - margin.right - 60).attr("y", yscale(percentlist[i])).attr("height", yscale(percentlist[i + 1]) - yscale(percentlist[i])).attr("width", 60).attr("fill", "red").attr("opacity", (i + 1) / levelList.length).on("click", function() { gstate.level = +this.id; dispatch.call("statechange", this, gstate);}).on("mouseover", function(d) { div.transition().style("opacity", 0.9).style("left", (d3.event.pageX) + "px").style("top", (d3.event.pageY - 42) + "px").text(CountyName.get(gstate.county) + ", " + StateName.get(gstate.county) +  ", Week" + gstate.week + ", D" + this.id + ", " + levelList[this.id].get(gstate.county)[gstate.week] + "%"); }).on("mouseout", function(d) {div.transition().style("opacity", 0); });
+	}
+  	dispatch.on("statechange.bar", function(state) {
+  		for (i = levelList.length - 1; i >= 0; i --){
+			percentlist[i] = levelList[i].get(gstate.county)[gstate.week] + percentlist[ i + 1];
+		}
+  		d3.selectAll("rect").transition().attr("y", function(d, i ){ return yscale(percentlist[i]); }).attr("height", function(d, i ){ return yscale(percentlist[i + 1]) - yscale(percentlist[i]); }).duration(1000);
+  	});
+});
+</script>
+</body>
+</html>
