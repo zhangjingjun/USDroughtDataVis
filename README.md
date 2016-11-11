@@ -1,6 +1,6 @@
 # US Drought DataVis
 
-Project link: [https://zhangjingjun.github.io/05-MapsAndViews/](https://zhangjingjun.github.io/05-MapsAndViews/).
+Project link: [https://zhangjingjun.github.io/USDroughtDataVis/]https://zhangjingjun.github.io/USDroughtDataVis/).
 
 # Brief Description
 
